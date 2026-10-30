@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1600">
+<meta name="robots" content="noindex,nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="homon">
+<meta name="theme-color" content="#008080">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>homon iPad</title>
+<style>
+	/* 画面の形・色は homon の index.php と同じにしている */
+	html, body { margin:0; padding:0; }
+	/* ver.1.4: 枠の端まで動かしても、ページ全体がずれたり「びよーん」と揺れたりしないようにする */
+	html, body { overscroll-behavior:none; }
+	body { box-sizing:border-box; font-family:-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI","Meiryo",sans-serif; background:#fff; color:#000; -webkit-text-size-adjust:100%; }
+	.basew { box-sizing:border-box; width:1600px; margin:0 auto; background-color:#fff; }
+	.clr { clear:both; }
+	.tobai { font-family:SFMono-Regular,Menlo,Consolas,"Hiragino Sans",monospace; border:1px solid #000; padding:5px 10px; font-size:12px; cursor:pointer; display:inline-block; }
+	.box { float:left; box-sizing:border-box; border:1px solid #ccc; overflow:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
+	.row { font-size:14px; padding-left:5px; white-space:nowrap; cursor:pointer; }
+	.sel { color:#fff; background-color:#008080; }
+	table { border-collapse:collapse; }
+	.lt td { border:none; padding:0 0 0 5px; cursor:pointer; }
+	.lbl { border-bottom:1px solid #ccc; border-right:1px solid #ccc; text-align:center; background-color:#f5f5ff; }
+	.cell { border-bottom:1px solid #ccc; padding:5px; }
+	select, input, button { font-size:14px; }
+	#topbar { display:flex; align-items:center; gap:12px; padding:8px 0; font-size:13px; border-bottom:1px solid #eee; margin-bottom:6px; }
+	#topbar .title { font-size:16px; font-weight:bold; }
+	#topbar .grow { flex:1; }
+	#topbar button { font-size:13px; padding:6px 12px; border:1px solid #888; border-radius:4px; background:#f6f6f6; cursor:pointer; }
+	#topbar .info { color:#555; }
+
+	/* 鍵・読み込みの画面 */
+	#gate { position:fixed; inset:0; background:#f4f6f8; display:flex; align-items:center; justify-content:center; z-index:10; }
+	#gate .card { width:520px; background:#fff; border-radius:14px; padding:32px 36px; box-shadow:0 2px 10px rgba(0,0,0,.1); font-size:18px; }
+	#gate h1 { margin:0 0 4px; font-size:28px; }
+	#gate .ver { color:#5b6775; font-size:15px; margin-bottom:18px; }
+	#gate label { display:block; margin:14px 0 6px; font-size:16px; }
+	#gate input[type=password] { width:100%; box-sizing:border-box; font-size:20px; padding:12px; border:1px solid #ccc; border-radius:8px; }
+	#gate button { font-size:18px; padding:14px 20px; border:0; border-radius:8px; background:#008080; color:#fff; margin-top:16px; width:100%; cursor:pointer; }
+	#gate button.sub { background:#e8edf3; color:#1d2733; }
+	#gate .msg { margin-top:14px; font-size:15px; color:#b3261e; min-height:1em; }
+	#gate .note { margin-top:18px; font-size:14px; color:#5b6775; line-height:1.6; }
+	#gate .info { font-size:15px; color:#1d2733; background:#eef6f6; border-radius:8px; padding:10px 12px; }
+	.hidden { display:none !important; }
+</style>
+</head>
+<body>
+
+<!-- 鍵・読み込みの画面 -->
+<div id="gate">
+	<div class="card">
+		<h1>homon iPad</h1>
+		<div class="ver">ver.1.4 見るだけ</div>
+
+		<div id="gUnlock" class="hidden">
+			<div class="info" id="gInfo"></div>
+			<label for="gPass">合言葉</label>
+			<input type="password" id="gPass" autocomplete="current-password">
+			<button id="gOpen">開く</button>
+			<button class="sub" id="gNew">新しいデータを読み込む</button>
+		</div>
+
+		<div id="gImport" class="hidden">
+			<label>1. データのファイル(〜.hmn)を選ぶ</label>
+			<input type="file" id="gFile" accept=".hmn,application/octet-stream,application/json">
+			<label for="gPass2">2. 書き出したときの合言葉</label>
+			<input type="password" id="gPass2" autocomplete="current-password">
+			<button id="gLoad">読み込む</button>
+			<button class="sub hidden" id="gBack">もどる</button>
+		</div>
+
+		<div class="msg" id="gMsg"></div>
+		<div class="note">データは合言葉で鍵をかけたまま、この iPad の中だけに置かれます。電波がなくても見られます。<br>iPad をなくしたときのために、iPad のパスコードは必ず入れておいてください。</div>
+	</div>
+</div>
+
+<div class="basew" id="app">
+	<div id="topbar">
+		<span class="title">homon iPad</span>
+		<span class="info" id="tbMade"></span>
+		<span class="grow"></span>
+		<button id="tbImport">新しいデータを読み込む</button>
+		<button id="tbLock">閉じる(鍵をかける)</button>
+	</div>
+
+	<div style="margin-bottom:6px; line-height:30px;">
+		<div style="float:right; font-size:12px;" id="shiryoDate"></div>
+		<div class="clr"></div>
+	</div>
+
+	<div style="margin-bottom:4px;">
+		<div style="float:left; width:100px; text-align:center; font-size:14px;">都道府県</div>
+		<div style="float:left; width:320px; text-align:center; font-size:14px;">対象高校／大学名　<span id="gakusu" style="color:#db7093;"></span></div>
+		<div style="float:left; width:420px; text-align:right; font-size:14px;">
+			<div style="float:left; margin-left:20px;">在卒生 <span id="zaisu" style="color:#db7093;"></span></div>
+			<div style="float:right;">
+				<input type="text" id="fromnen" style="width:44px;" inputmode="numeric">
+				<input type="button" id="fromnenset" style="width:40px; padding:0;" value="SET">
+				<input type="button" id="fromnenclr" style="width:40px; padding:0; background-color:#db7093; color:#fff;" value="CLR">
+			</div>
+		</div>
+		<div style="float:left; width:700px; text-align:center; font-size:14px;">
+			<div style="float:left; width:400px; text-align:center;">資料請求者一覧 <span id="shisu" style="color:#db7093;"></span></div>
+			<div style="float:right;">
+				<select id="gakko" style="width:76px;">
+					<option value="----">全て</option><option value="KASD">KASD</option><option value="KYOBI">KYOBI</option><option value="TASK">TASK</option>
+				</select>
+				&nbsp;&nbsp;対象卒年
+				<select id="nenf" style="width:70px;"></select>
+				～
+				<select id="nent" style="width:70px;"></select>
+			</div>
+		</div>
+		<div class="clr"></div>
+	</div>
+
+	<div id="ken" class="box" style="width:100px; height:740px;"></div>
+	<div id="koko" class="box" style="width:300px; height:740px; margin-left:20px;"></div>
+
+	<div style="float:left; box-sizing:border-box; width:400px; height:740px; margin-left:20px;">
+		<div id="man" class="box" style="width:400px; height:440px; float:none; overflow-y:scroll;">
+			<table class="lt" style="font-size:12px; width:100%;"><tbody id="manBody"></tbody></table>
+		</div>
+		<div style="box-sizing:border-box; width:400px; height:280px; margin-top:10px;">
+			<div style="text-align:center; font-size:14px; width:100%;">学生情報</div>
+			<div class="box" style="width:400px; height:269px; float:none; overflow-y:scroll; font-size:12px;">
+				<table style="font-size:14px; width:100%;" id="kojin"></table>
+			</div>
+		</div>
+	</div>
+
+	<div style="float:left; box-sizing:border-box; width:680px; height:740px; margin-left:20px;">
+		<div id="gan" class="box" style="width:680px; height:440px; float:none; overflow-y:scroll;">
+			<table class="lt" style="font-size:12px; width:100%;"><tbody id="ganBody"></tbody></table>
+		</div>
+		<div style="box-sizing:border-box; width:680px; height:280px; margin-top:10px;">
+			<div style="text-align:center; font-size:14px; width:100%;">資料請求／ガイダンス・OPC参加／出願者情報</div>
+			<div class="box" style="width:680px; height:269px; float:none; overflow-y:scroll; font-size:12px;" id="ganDetail"></div>
+		</div>
+	</div>
+	<div class="clr"></div>
+
+	<div style="float:left; width:100px;">&nbsp;</div>
+	<div style="float:left; width:320px; text-align:center; font-size:14px;">
+		<input id="kokowd" type="search" style="width:154px; margin-left:20px; margin-top:5px;">
+		<button id="kokoclr" style="width:64px; font-size:12px; padding:3px; background-color:#db7093; color:#fff; border:1px solid #800;">CLEAR</button>
+		<button id="kokosel" style="width:64px; font-size:12px; padding:3px;">SEARCH</button>
+	</div>
+	<div style="float:left; width:420px; text-align:center; font-size:14px;">
+		<div style="float:left; margin-top:5px; margin-left:50px;">
+			<select id="gakusel" style="width:76px;">
+				<option value="----">全て</option><option value="KASD">KASD</option><option value="KYOBI">KYOBI</option><option value="TASK">TASK</option>
+			</select>
+		</div>
+	</div>
+	<div style="float:left; width:700px; text-align:center; font-size:14px;">
+		<div style="float:left; margin-top:5px; margin-left:20px;">
+			<label><input type="checkbox" id="chk1">資料請求</label>
+			<label style="margin-left:10px;"><input type="checkbox" id="chk2">ガイダンス</label>
+			<label style="margin-left:10px;"><input type="checkbox" id="chk3">オープンキャンパス</label>
+			<label style="margin-left:10px;"><input type="checkbox" id="chk4">AOエントリー</label>
+			<label style="margin-left:10px;"><input type="checkbox" id="chk5">入試種別</label>
+		</div>
+		<div style="float:right; margin-top:5px;">
+			<button id="reset" style="width:64px; font-size:12px; padding:3px; background-color:#db7093; color:#fff; border:1px solid #800;">RESET</button>
+		</div>
+		<div class="clr"></div>
+	</div>
+	<div class="clr"></div>
+	<div style="height:40px;"></div>
+</div>
+
+<script>
+(function () {
+	'use strict';
+	var $ = function (id) { return document.getElementById(id); };
+	var DATA = null;      // 鍵をあけたデータ(この画面を開いている間だけ、メモリの中に置く)
+	var DBNAME = 'homon-ipad', STORE = 'files';
+
+	// ---------- 状態(homon の session と同じもの) ----------
+	var S = { ken: 0, koko: 0, man: 0, gan: 0, kokowd: '', gakusel: '----', fromnen: '', gakko: '----', nenf: '----', nent: '----', chk1: '', chk2: '', chk3: '', chk4: '', chk5: '' };
+	function saveState() { try { localStorage.setItem('homonIpadState', JSON.stringify(S)); } catch (e) {} }
+	function loadState() { try { var s = JSON.parse(localStorage.getItem('homonIpadState') || 'null'); if (s) { for (var k in S) { if (k in s) { S[k] = s[k]; } } } } catch (e) {} }
+
+	function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+	function intval(s) { var n = parseInt(String(s), 10); return isNaN(n) ? 0 : n; }
+
+	// ---------- 保存(IndexedDB。鍵をかけたまま置く) ----------
+	function db() {
+		return new Promise(function (ok, ng) {
+			var r = indexedDB.open(DBNAME, 1);
+			r.onupgradeneeded = function () { r.result.createObjectStore(STORE); };
+			r.onsuccess = function () { ok(r.result); };
+			r.onerror = function () { ng(r.error); };
+		});
+	}
+	function dbGet(key) { return db().then(function (d) { return new Promise(function (ok, ng) { var q = d.transaction(STORE).objectStore(STORE).get(key); q.onsuccess = function () { ok(q.result); }; q.onerror = function () { ng(q.error); }; }); }); }
+	function dbPut(key, val) { return db().then(function (d) { return new Promise(function (ok, ng) { var t = d.transaction(STORE, 'readwrite'); t.objectStore(STORE).put(val, key); t.oncomplete = function () { ok(); }; t.onerror = function () { ng(t.error); }; }); }); }
+
+	// ---------- 鍵をあける ----------
+	function unb64(s) { var b = atob(s), u = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) { u[i] = b.charCodeAt(i); } return u; }
+	async function unlock(env, pass) {
+		if (!env || env.kind !== 'homon-ipad-locked') { throw new Error('homon iPad のデータではありません'); }
+		var enc = new TextEncoder();
+		var base = await crypto.subtle.importKey('raw', enc.encode(pass), 'PBKDF2', false, ['deriveKey']);
+		var key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt: unb64(env.salt), iterations: env.iter, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+		var plain;
+		try { plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(env.iv) }, key, unb64(env.data)); }
+		catch (e) { throw new Error('合言葉がちがいます'); }
+		var d = JSON.parse(new TextDecoder().decode(plain));
+		if (d.kind !== 'homon-ipad') { throw new Error('homon iPad のデータではありません'); }
+		return d;
+	}
+
+	// ---------- 鍵・読み込みの画面 ----------
+	function gateMsg(t) { $('gMsg').textContent = t || ''; }
+	function showGate(mode, envInfo) {
+		DATA = null;
+		$('gate').classList.remove('hidden');
+		$('gUnlock').classList.toggle('hidden', mode !== 'unlock');
+		$('gImport').classList.toggle('hidden', mode !== 'import');
+		$('gBack').classList.toggle('hidden', !envInfo);
+		if (envInfo) { $('gInfo').textContent = '入っているデータ: ' + envInfo; }
+		$('gPass').value = ''; $('gPass2').value = ''; $('gFile').value = '';
+		gateMsg('');
+	}
+	async function start() {
+		var meta = await dbGet('meta').catch(function () { return null; });
+		if (meta) { showGate('unlock', meta.label); } else { showGate('import', null); }
+	}
+	$('gOpen').onclick = async function () {
+		var btn = this; btn.disabled = true; gateMsg('開いています…');
+		try {
+			var env = await dbGet('locked');
+			DATA = await unlock(env, $('gPass').value);
+			openApp();
+		} catch (e) { gateMsg(e.message); }
+		btn.disabled = false;
+	};
+	$('gPass').addEventListener('keydown', function (e) { if (e.key === 'Enter') { $('gOpen').click(); } });
+	$('gNew').onclick = async function () { var meta = await dbGet('meta').catch(function () { return null; }); showGate('import', meta ? meta.label : null); };
+	$('gBack').onclick = start;
+	$('gLoad').onclick = async function () {
+		var f = $('gFile').files[0];
+		if (!f) { gateMsg('ファイルを選んでください'); return; }
+		var btn = this; btn.disabled = true; gateMsg('読み込んでいます…');
+		try {
+			var env = JSON.parse(await f.text());
+			DATA = await unlock(env, $('gPass2').value);
+			var label = DATA.made + ' 書き出し(在卒生 ' + DATA.count.zai + ' 名・資料請求者 ' + DATA.count.aol + ' 名)';
+			await dbPut('locked', env);
+			await dbPut('meta', { label: label });
+			S.ken = 0; S.koko = 0; S.man = 0; S.gan = 0; saveState();
+			openApp();
+		} catch (e) { gateMsg(e.message === 'Unexpected end of JSON input' || e instanceof SyntaxError ? 'このファイルは読めません' : e.message); }
+		btn.disabled = false;
+	};
+	$('tbLock').onclick = start;
+	$('tbImport').onclick = $('gNew').onclick;
+
+	// ---------- 画面 ----------
+	function openApp() {
+		$('gate').classList.add('hidden');
+		$('tbMade').textContent = DATA.made + ' に書き出したデータ';
+		$('shiryoDate').textContent = '【 ' + (DATA.shiryo || '------') + ' 】';
+		if (S.ken >= DATA.kens.length) { S.ken = 0; }
+		syncInputs();
+		renderKen(); renderKoko(true); renderMan(true); renderGan(true);
+	}
+
+	function years(sel) {
+		var h = '<option value="----">----</option>';
+		for (var y = 2022; y <= 2030; y++) { h += '<option value="' + y + '">' + y + '</option>'; }
+		sel.innerHTML = h;
+	}
+	years($('nenf')); years($('nent'));
+
+	function syncInputs() {
+		$('fromnen').value = S.fromnen; $('fromnen').placeholder = String(new Date().getFullYear());
+		$('gakko').value = S.gakko; $('nenf').value = S.nenf; $('nent').value = S.nent;
+		$('gakusel').value = S.gakusel; $('kokowd').value = S.kokowd;
+		for (var i = 1; i <= 5; i++) { $('chk' + i).checked = S['chk' + i] === 'on'; }
+	}
+
+	function curKen() { return DATA.kens[S.ken]; }
+	function schools() {
+		var list = curKen().s;
+		if (S.kokowd === '') { return list; }
+		return list.filter(function (s) { return s.n.indexOf(S.kokowd) !== -1; });
+	}
+	function curSchool() { return schools()[S.koko] || null; }
+
+	function renderKen() {
+		var h = '';
+		DATA.kens.forEach(function (k, i) {
+			h += '<div class="row' + (i === S.ken ? ' sel' : '') + '" data-i="' + i + '">' + esc(k.n) + '</div>';
+		});
+		$('ken').innerHTML = h;
+	}
+	$('ken').onclick = function (e) {
+		var t = e.target.closest('[data-i]'); if (!t) { return; }
+		S.ken = +t.dataset.i; S.koko = 0; S.man = 0; S.gan = 0; saveState();
+		renderKen(); renderKoko(true); renderMan(true); renderGan(true);
+	};
+
+	function renderKoko(toTop) {
+		var list = schools(), h = '';
+		list.forEach(function (s, i) {
+			var mark = s.m === 'A' ? '<span style="color:#f00;">Ａ' + esc(s.r) + '</span>' : s.m === 'B' ? '<span style="color:#00f;">Ｂ' + esc(s.r) + '</span>' : '<span style="color:#000;">　' + esc(s.r) + '</span>';
+			h += '<div class="row' + (i === S.koko ? ' sel' : '') + '" data-i="' + i + '">' + mark + '&nbsp;' + esc(s.n) + '</div>';
+		});
+		$('koko').innerHTML = h;
+		$('gakusu').textContent = '計' + list.length + '校';
+		if (toTop) { $('koko').scrollTop = 0; }
+	}
+	$('koko').onclick = function (e) {
+		var t = e.target.closest('[data-i]'); if (!t) { return; }
+		S.koko = +t.dataset.i; S.man = 0; S.gan = 0; saveState();
+		markSel('koko', S.koko); renderMan(true); renderGan(true);
+	};
+	function markSel(boxId, idx) {
+		var rows = $(boxId).querySelectorAll('[data-i]');
+		for (var i = 0; i < rows.length; i++) { rows[i].classList.toggle('sel', +rows[i].dataset.i === idx); }
+	}
+
+	// ----- 在卒生(index.php 671〜881行) -----
+	var KBN_COLOR = { KASD: '#b0c4de', KYOBI: '#ffe4c4', TASK: '#d8bfd8' };
+	function zaiList() {
+		var s = curSchool(); if (!s) { return []; }
+		return s.z.filter(function (v) {
+			if (S.gakusel !== '----' && v[0] !== S.gakusel) { return false; }
+			if (S.fromnen !== '' && intval(S.fromnen) > intval(v[3])) { return false; }
+			return true;
+		});
+	}
+	function renderMan(toTop) {
+		var list = zaiList(), h = '', k = 0, b = 0, t = 0;
+		list.forEach(function (v, i) {
+			if (v[0] === 'KASD') { k++; } else if (v[0] === 'KYOBI') { b++; } else if (v[0] === 'TASK') { t++; }
+			var kana = v[2], x = kana.indexOf('（'); if (x !== -1) { kana = kana.slice(0, x); }
+			var on = i === S.man;
+			var c = on ? ' style="background-color:#008080; color:#fff;"' : '';
+			h += '<tr data-i="' + i + '"' + (on ? ' class="on"' : '') + '>' +
+				'<td style="width:40px; background-color:' + (KBN_COLOR[v[0]] || '#fff') + ';">' + esc(v[0]) + '</td>' +
+				'<td class="m"' + c + '>' + esc(v[1]) + '</td>' +
+				'<td class="m"' + c + '>' + esc(kana) + '</td>' +
+				'<td class="m" style="width:60px;' + (on ? ' background-color:#008080; color:#fff;' : '') + '">' + esc(v[3]) + '</td>' +
+				'<td class="m" style="width:20px;' + (on ? ' background-color:#008080; color:#fff;' : '') + '">' + esc(v[10]) + '</td></tr>';
+		});
+		$('manBody').innerHTML = h;
+		$('zaisu').textContent = '（建' + k + '/美' + b + '/伝' + t + '）計' + (k + b + t) + '名';
+		if (toTop) { $('man').scrollTop = 0; }
+		renderKojin(list[S.man]);
+	}
+	$('man').onclick = function (e) {
+		var t = e.target.closest('tr[data-i]'); if (!t) { return; }
+		S.man = +t.dataset.i; saveState();
+		var y = $('man').scrollTop; renderMan(false); $('man').scrollTop = y;
+	};
+	function renderKojin(v) {
+		v = v || ['', '', '', '', '', '', '', '', '', '', '', '', '', ''];
+		var L = 'class="lbl" style="padding:5px;"';
+		$('kojin').innerHTML =
+			'<tr><td class="lbl" style="width:25%; background-color:#bffbe6; position:sticky; top:0;">氏名</td>' +
+			'<td style="border-bottom:1px solid #ccc; border-right:1px solid #ccc; padding:5px; background-color:#bffbe6; position:sticky; top:0;">' + esc(v[1]) + '</td>' +
+			'<td style="width:20%; border-bottom:1px solid #ccc; text-align:center; background-color:#bffbe6; position:sticky; top:0;">' + esc(v[5]) + '性</td></tr>' +
+			'<tr><td ' + L + '>よみかな</td><td colspan="2" class="cell">' + esc(v[2]) + '</td></tr>' +
+			'<tr><td ' + L + '>専攻</td><td colspan="2" class="cell">' + esc(v[6]) + '</td></tr>' +
+			'<tr><td ' + L + '>在学年</td><td colspan="2" class="cell">' + esc(v[13]) + '</td></tr>' +
+			'<tr><td ' + L + '>籍</td><td colspan="2" class="cell">' + esc(v[11]) + '</td></tr>' +
+			'<tr><td ' + L + '>資格</td><td colspan="2" class="cell">' + esc(v[9]) + '</td></tr>' +
+			'<tr><td rowspan="2" ' + L + '>就職先</td><td colspan="2" class="cell">' + esc(v[7]) + '&nbsp;</td></tr>' +
+			'<tr><td colspan="2" class="cell">' + esc(v[8]) + '&nbsp;</td></tr>';
+	}
+
+	// ----- 資料請求者(index.php 1080〜1494行) -----
+	function aolList() {
+		var s = curSchool(); if (!s) { return []; }
+		return s.a.filter(function (v) {
+			var ksd = v[15], bsd = v[16], tsd = v[17], kod = v[21], bod = v[22], tod = v[23], kgd = v[27], bgd = v[28], tgd = v[29];
+			var kwd = v[36], bwd = v[37], twd = v[38], kasd_ao = v[9], task_ao = v[30], kasd_jyu = v[10], task_jyu = v[31], kyobi_jyu = v[40];
+			if (S.chk1 === 'on' && ksd === '' && bsd === '' && tsd === '') { return false; }
+			if (S.chk2 === 'on' && kgd === '' && bgd === '' && tgd === '') { return false; }
+			if (S.chk3 === 'on' && kod === '' && bod === '' && tod === '' && kwd === '' && bwd === '' && twd === '') { return false; }
+			if (S.chk4 === 'on' && kasd_ao === '' && task_ao === '') { return false; }
+			if (S.chk5 === 'on' && kasd_jyu === '' && kyobi_jyu === '' && task_jyu === '') { return false; }
+			if (v[3] !== '') {
+				var yy = intval(v[3]);
+				if (S.nenf !== '----' && yy < intval(S.nenf)) { return false; }
+				if (S.nent !== '----' && yy > intval(S.nent)) { return false; }
+			}
+			if (S.gakko === 'KASD' && kasd_jyu === '' && ksd === '' && kod === '' && kgd === '' && kwd === '' && kasd_ao === '') { return false; }
+			if (S.gakko === 'KYOBI' && kyobi_jyu === '' && bsd === '' && bod === '' && bgd === '' && bwd === '') { return false; }
+			if (S.gakko === 'TASK' && task_jyu === '' && tsd === '' && tod === '' && tgd === '' && twd === '' && task_ao === '') { return false; }
+			return true;
+		});
+	}
+	function cnt(d, n) { return d === '' ? '' : d + '【' + n + '】'; }
+	function renderGan(toTop) {
+		var list = aolList(), h = '', k = 0, b = 0, t = 0;
+		list.forEach(function (v, i) {
+			var ks = v[15] === '' ? (v[27] === '' ? '' : v[27] + '【G】') : v[15] + '【' + v[12] + '】';
+			var bs = v[16] === '' ? (v[28] === '' ? '' : v[28] + '【G】') : v[16] + '【' + v[13] + '】';
+			var ts = v[17] === '' ? (v[29] === '' ? '' : v[29] + '【G】') : v[17] + '【' + v[14] + '】';
+			if (v[15] !== '' || v[27] !== '') { k++; }
+			if (v[16] !== '' || v[28] !== '') { b++; }
+			if (v[17] !== '' || v[29] !== '') { t++; }
+			var ato = '#fff';
+			if (v[21] !== '' || v[22] !== '' || v[23] !== '' || v[36] !== '' || v[37] !== '' || v[38] !== '' || v[9] !== '' || v[30] !== '') { ato = '#ffe4e1'; }
+			if (v[9] !== '' || v[10] !== '' || v[11] !== '' || v[30] !== '' || v[31] !== '' || v[32] !== '' || v[40] !== '') { ato = '#ffe4e1'; }
+			var on = i === S.gan;
+			var nc = on ? 'background-color:#008080; color:#fff;' : 'background-color:' + ato + ';';
+			var yc = on ? 'background-color:#008080; color:#fff;' : 'background-color:#dcdcdc;';
+			h += '<tr data-i="' + i + '">' +
+				'<td style="white-space:nowrap; ' + nc + '">' + esc(v[1]) + '</td>' +
+				'<td style="white-space:nowrap; ' + nc + '">' + esc(v[2]) + '</td>' +
+				'<td style="white-space:nowrap; ' + yc + '">' + esc(v[3]) + '</td>' +
+				'<td style="width:110px; text-align:center; white-space:nowrap; background-color:#b0c4de;">' + esc(ks) + '</td>' +
+				'<td style="width:110px; text-align:center; white-space:nowrap; background-color:#ffe4c4;">' + esc(bs) + '</td>' +
+				'<td style="width:110px; text-align:center; white-space:nowrap; background-color:#d8bfd8;">' + esc(ts) + '</td></tr>';
+		});
+		$('ganBody').innerHTML = h;
+		$('shisu').textContent = '（建' + k + '/美' + b + '/伝' + t + '）全' + list.length + '名';
+		if (toTop) { $('gan').scrollTop = 0; }
+		renderGanDetail(list[S.gan]);
+	}
+	$('gan').onclick = function (e) {
+		var t = e.target.closest('tr[data-i]'); if (!t) { return; }
+		S.gan = +t.dataset.i; saveState();
+		var y = $('gan').scrollTop; renderGan(false); $('gan').scrollTop = y;
+	};
+	function renderGanDetail(v) {
+		var nb = function (s) { return s === '' ? '&nbsp;' : esc(s); };
+		var d = { name: '', year: '', ks: '&nbsp;', bs: '&nbsp;', ts: '&nbsp;', kg: '&nbsp;', bg: '&nbsp;', tg: '&nbsp;', ko: '&nbsp;', bo: '&nbsp;', to: '&nbsp;', kao: '', tao: '', kj: '&nbsp;', bj: '&nbsp;', tj: '&nbsp;', kji: '', bji: '', tji: '', gouhi: '' };
+		if (v) {
+			d.name = esc(v[1]); d.year = esc(v[3]);
+			d.ks = nb(cnt(v[15], v[12])); d.bs = nb(cnt(v[16], v[13])); d.ts = nb(cnt(v[17], v[14]));
+			d.kg = nb(cnt(v[27], v[24])); d.bg = nb(cnt(v[28], v[25])); d.tg = nb(cnt(v[29], v[26]));
+			d.ko = nb(cnt(v[21], v[18])); d.bo = nb(cnt(v[22], v[19])); d.to = nb(cnt(v[23], v[20]));
+			d.kao = esc(v[9]); d.tao = esc(v[30]);
+			d.kj = v[10] === '' ? '&nbsp;' : esc(v[10] + '【' + v[11] + '】');
+			d.bj = v[40] === '' ? '&nbsp;' : esc(v[40] + '【' + v[41] + '】');
+			d.tj = v[31] === '' ? '&nbsp;' : esc(v[31] + '【' + v[32] + '】');
+			d.kji = esc(v[42]); d.bji = esc(v[43]); d.tji = esc(v[44]); d.gouhi = esc(v[45]);
+		}
+		var c3 = function (a, b2, c) {
+			return '<td style="width:26%; border-bottom:1px solid #ccc; border-right:1px solid #ccc; padding:5px; background-color:#b0c4de;">' + a + '</td>' +
+				'<td style="width:26%; border-bottom:1px solid #ccc; border-right:1px solid #ccc; padding:5px; background-color:#ffe4c4;">' + b2 + '</td>' +
+				'<td style="width:26%; border-bottom:1px solid #ccc; border-right:1px solid #ccc; padding:5px; background-color:#d8bfd8;">' + c + '</td>';
+		};
+		$('ganDetail').innerHTML =
+			'<table style="width:100%;"><tr><td class="lbl" style="width:142px;">氏名</td>' +
+			'<td style="border-bottom:1px solid #ccc; border-right:1px solid #ccc; padding:5px;">' + d.name + '</td>' +
+			'<td style="width:10%; border-bottom:1px solid #ccc; text-align:center; background-color:#dcdcdc;">' + d.year + '</td></tr></table>' +
+			'<table style="width:100%;">' +
+			'<tr><td class="lbl">最終資料請求日【回数】</td>' + c3(d.ks, d.bs, d.ts) + '</tr>' +
+			'<tr><td class="lbl">最終ガイダンス【回数】</td>' + c3(d.kg, d.bg, d.tg) + '</tr>' +
+			'<tr><td class="lbl">最終ＯＰＣ参加【回数】</td>' + c3(d.ko, d.bo, d.to) + '</tr>' +
+			'<tr><td class="lbl">ＡＯエントリー日　　　</td>' + c3(d.kao, '&nbsp;', d.tao) + '</tr>' +
+			'<tr><td class="lbl">入試種別【受験料入金日】</td>' + c3(d.kj, d.bj, d.tj) + '</tr>' +
+			'<tr><td class="lbl">合否結果</td>' + c3('&nbsp;', d.gouhi, '&nbsp;') + '</tr>' +
+			'<tr><td class="lbl" style="padding-left:8px;">辞退</td>' + c3(d.kji, d.bji, d.tji) + '</tr>' +
+			'</table>';
+	}
+
+	// ---------- 絞り込み(homon と同じく、変えたら資料請求者は1人目に戻る) ----------
+	function afterFilter() { S.gan = 0; saveState(); renderMan(false); renderGan(true); }
+	for (var ci = 1; ci <= 5; ci++) {
+		(function (n) { $('chk' + n).onchange = function () { S['chk' + n] = this.checked ? 'on' : ''; afterFilter(); }; })(ci);
+	}
+	$('gakko').onchange = function () { S.gakko = this.value; afterFilter(); };
+	$('nenf').onchange = function () {
+		S.nenf = this.value;
+		if (S.nenf !== '----' && (S.nent === '----' || intval(S.nenf) > intval(S.nent))) { S.nent = S.nenf; $('nent').value = S.nent; }
+		afterFilter();
+	};
+	$('nent').onchange = function () { S.nent = this.value; afterFilter(); };
+	$('gakusel').onchange = function () { S.gakusel = this.value; afterFilter(); };
+	$('fromnenset').onclick = function () {
+		var v = $('fromnen').value.trim();
+		if (/^\d{4}$/.test(v)) { S.fromnen = v; afterFilter(); }
+	};
+	$('fromnen').addEventListener('keydown', function (e) { if (e.key === 'Enter') { $('fromnenset').click(); } });
+	$('fromnenclr').onclick = function () { if (S.fromnen !== '') { S.fromnen = ''; $('fromnen').value = ''; afterFilter(); } };
+	$('reset').onclick = function () {
+		for (var i = 1; i <= 5; i++) { S['chk' + i] = ''; $('chk' + i).checked = false; }
+		afterFilter();
+	};
+	$('kokosel').onclick = function () { S.kokowd = $('kokowd').value.trim(); S.koko = 0; S.man = 0; S.gan = 0; saveState(); renderKoko(true); renderMan(true); renderGan(true); };
+	$('kokowd').addEventListener('keydown', function (e) { if (e.key === 'Enter') { $('kokosel').click(); } });
+	$('kokoclr').onclick = function () { $('kokowd').value = ''; $('kokosel').click(); };
+
+	// ---------- 電波なしで開けるようにする ----------
+	if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+		navigator.serviceWorker.register('sw.js').catch(function () {});
+	}
+
+	loadState();
+	if (!window.crypto || !crypto.subtle || !window.indexedDB) {
+		$('gMsg').textContent = 'このブラウザでは使えません(https のアドレスで開いてください)';
+		$('gImport').classList.add('hidden');
+	} else {
+		start();
+	}
+})();
+</script>
+</body>
+</html>
