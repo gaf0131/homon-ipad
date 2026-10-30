@@ -61,7 +61,7 @@
 <div id="gate">
 	<div class="card">
 		<h1>homon iPad</h1>
-		<div class="ver">ver.2.1 見るだけ</div>
+		<div class="ver">ver.2.2 見るだけ</div>
 
 		<div id="gUnlock" class="hidden">
 			<div class="info" id="gInfo"></div>
@@ -506,7 +506,12 @@
 
 	// ---------- 電波なしで開けるようにする ----------
 	if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
-		navigator.serviceWorker.register('sw.js').catch(function () {});
+		// ver.2.2: 新しい画面が届いて入れかわったら、その場で1回だけ開き直す(前は2回開き直さないと新しくならなかった)
+		var hadController = !!navigator.serviceWorker.controller, reloaded = false;
+		navigator.serviceWorker.addEventListener('controllerchange', function () {
+			if (hadController && !reloaded) { reloaded = true; location.reload(); }
+		});
+		navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(function () {});
 	}
 
 	loadState();

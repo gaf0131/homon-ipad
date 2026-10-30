@@ -1,10 +1,15 @@
-// homon iPad ver.2.1 : 電波がなくても画面を開けるように、画面の部品だけを iPad にしまっておく。
+// homon iPad ver.2.2 : 電波がなくても画面を開けるように、画面の部品だけを iPad にしまっておく。
 // 名簿のデータはここには入れない(データは鍵をかけたまま IndexedDB に置く)。
-const CACHE = 'homon-ipad-2.1';
+// ver.2.2: しまうときは iPad の一時置き場(10分残る)を通さず、必ず置き場から取り直す(古い画面のままになっていた)
+const CACHE = 'homon-ipad-2.2';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icon-180.png', 'icon-512.png'];
 
 self.addEventListener('install', (e) => {
-	e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));
+	e.waitUntil(
+		caches.open(CACHE)
+			.then((c) => c.addAll(FILES.map((u) => new Request(u, { cache: 'reload' }))))
+			.then(() => self.skipWaiting())
+	);
 });
 
 self.addEventListener('activate', (e) => {
@@ -23,7 +28,7 @@ self.addEventListener('fetch', (e) => {
 	e.respondWith(
 		caches.open(CACHE).then((c) =>
 			c.match(e.request, { ignoreSearch: true }).then((hit) => {
-				const net = fetch(e.request)
+				const net = fetch(e.request.url, { cache: 'no-cache' })
 					.then((res) => {
 						if (res.ok) {
 							c.put(e.request, res.clone());
