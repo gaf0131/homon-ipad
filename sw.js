@@ -1,6 +1,6 @@
-// homon iPad ver.1.4 : 電波がなくても画面を開けるように、画面の部品だけを iPad にしまっておく。
+// homon iPad ver.1.9 : 電波がなくても画面を開けるように、画面の部品だけを iPad にしまっておく。
 // 名簿のデータはここには入れない(データは鍵をかけたまま IndexedDB に置く)。
-const CACHE = 'homon-ipad-1.4';
+const CACHE = 'homon-ipad-1.9';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icon-180.png', 'icon-512.png'];
 
 self.addEventListener('install', (e) => {

@@ -47,6 +47,9 @@
 	#gate .note { margin-top:18px; font-size:14px; color:#5b6775; line-height:1.6; }
 	#gate .info { font-size:15px; color:#1d2733; background:#eef6f6; border-radius:8px; padding:10px 12px; }
 	.hidden { display:none !important; }
+	/* ver.1.9: 読み込んだあとに「ダウンロードのファイルを消して」と出す */
+	#keshite { background:#fff4d6; border:1px solid #e0b84a; border-radius:8px; padding:10px 14px; margin:6px 0; font-size:16px; }
+	#keshite button { font-size:16px; padding:6px 16px; margin-left:12px; border:1px solid #888; border-radius:6px; background:#fff; }
 </style>
 </head>
 <body>
@@ -55,7 +58,7 @@
 <div id="gate">
 	<div class="card">
 		<h1>homon iPad</h1>
-		<div class="ver">ver.1.4 見るだけ</div>
+		<div class="ver">ver.1.9 見るだけ</div>
 
 		<div id="gUnlock" class="hidden">
 			<div class="info" id="gInfo"></div>
@@ -87,6 +90,7 @@
 		<button id="tbImport">新しいデータを読み込む</button>
 		<button id="tbLock">閉じる(鍵をかける)</button>
 	</div>
+	<div id="keshite" class="hidden">読み込みました。「ファイル」アプリの「ダウンロード」にある <b>homon_ipad_…hmn</b> は消してください(残しておくと、次に選ぶときに迷います)。<button id="keshiteOk">わかった</button></div>
 
 	<div style="margin-bottom:6px; line-height:30px;">
 		<div style="float:right; font-size:12px;" id="shiryoDate"></div>
@@ -257,10 +261,12 @@
 			await dbPut('meta', { label: label });
 			S.ken = 0; S.koko = 0; S.man = 0; S.gan = 0; saveState();
 			openApp();
+			$('keshite').classList.remove('hidden');
 		} catch (e) { gateMsg(e.message === 'Unexpected end of JSON input' || e instanceof SyntaxError ? 'このファイルは読めません' : e.message); }
 		btn.disabled = false;
 	};
-	$('tbLock').onclick = start;
+	$('tbLock').onclick = function () { $('keshite').classList.add('hidden'); start(); };
+	$('keshiteOk').onclick = function () { $('keshite').classList.add('hidden'); };
 	$('tbImport').onclick = $('gNew').onclick;
 
 	// ---------- 画面 ----------
